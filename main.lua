@@ -7,6 +7,28 @@ local display = {}
 local fps = 60
 local fpsInterval, startTime, now, after, elapsed
 
+local keymap = {
+    ["1"] = 0x1,
+    ["2"] = 0x2,
+    ["3"] = 0x3,
+    ["4"] = 0xc,
+    ["q"] = 0x4,
+    ["w"] = 0x5,
+    ["e"] = 0x6,
+    ["r"] = 0xD,
+    ["a"] = 0x7,
+    ["s"] = 0x8,
+    ["d"] = 0x9,
+    ["f"] = 0xE,
+    ["z"] = 0xA,
+    ["x"] = 0x0,
+    ["c"] = 0xB,
+    ["v"] = 0xF
+}
+
+local keysPressed = {}
+local onNextKeyPress = nil
+
 function SetPixel(x, y)
     if x > cols then
         x = x - cols
@@ -44,6 +66,26 @@ function RenderDisplay()
             love.graphics.rectangle("fill", x - scale, y, scale, scale)
         end
     end
+end
+
+function IsKeyPressed(keyCode)
+    return keysPressed[keyCode]
+end
+
+function love.keypressed(_, scancode)
+    local hexKey = keymap[scancode]
+    if hexKey == nil then return end
+    keysPressed[hexKey] = true
+
+    if onNextKeyPress ~= nil and hexKey ~= nil then
+        onNextKeyPress(tonumber(hexKey))
+        onNextKeyPress = nil
+    end
+end
+
+function love.keyreleased(_, scancode)
+    local key = keymap[scancode]
+    keysPressed[key] = false
 end
 
 function love.load()
