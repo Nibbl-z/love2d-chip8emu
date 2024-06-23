@@ -162,28 +162,98 @@ function ExecuteInstruction(opcode)
         table.insert(stack, pc)
         pc = bit.band(opcode, 0xFFF)
     elseif instruction == 0x3000 then
+        if v[x] == bit.band(opcode, 0xFF) then
+            pc = pc + 2
+        end
     elseif instruction == 0x4000 then
+        if v[x] ~= bit.band(opcode, 0xFF) then
+            pc = pc + 2
+        end
     elseif instruction == 0x5000 then
+        if v[x] == v[y] then
+            pc = pc + 2
+        end
     elseif instruction == 0x6000 then
+        v[x] = bit.band(opcode, 0xFF)
     elseif instruction == 0x7000 then
+        v[x] = v[x] + bit.band(opcode, 0xFF)
     elseif instruction == 0x8000 then
         if bit.band(opcode, 0xF) == 0x0 then
-        elseif bit.band(opcode, 0xF) == 0x0 then
+            v[x] = v[y]
         elseif bit.band(opcode, 0xF) == 0x1 then
+            v[x] = bit.bor(v[x], v[y])
         elseif bit.band(opcode, 0xF) == 0x2 then
+            v[x] = bit.band(v[x], v[y])
         elseif bit.band(opcode, 0xF) == 0x3 then
-        elseif bit.band(opcode, 0xF) == 0x4 then
-        elseif bit.band(opcode, 0xF) == 0x5 then
+            v[x] = bit.bxor(v[x], v[y])
+        elseif bit.band(opcode, 0xF) == 0x4 then -- v not being an 8bit array might cause issues... but thats a problem for later!!
+            local sum = v[x] + v[y]
+            v[0xF] = 0
+
+            if sum > 0xFF then
+                v[0xF] = 1
+            end
+
+            v[x] = sum
+        elseif bit.band(opcode, 0xF) == 0x5 then -- same here
+            v[0xF] = 0
+
+            if v[x] > v[y] then
+                v[0xF] = 1
+            end
+
+            v[x] = v[x] - v[y]
         elseif bit.band(opcode, 0xF) == 0x6 then
+            v[0xF] = bit.band(v[x], 0x1)
+            v[x] = bit.rshift(v[x], 1)
         elseif bit.band(opcode, 0xF) == 0x7 then
+            v[0xF] = 0
+
+            if v[y] > v[x] then
+                v[0xF] = 1
+            end
+
+            v[x] = v[y] - v[x]
         elseif bit.band(opcode, 0xF) == 0xE then
+            v[0xF] = bit.band(v[x], 0x80)
+            v[x] = bit.lshift(v[x], 1)
         end
     elseif instruction == 0x9000 then
+        if v[x] ~= v[y] then
+            pc = pc + 2
+        end
     elseif instruction == 0xA000 then
+        i = bit.band(opcode, 0xFFF)
     elseif instruction == 0xB000 then
+        pc = bit.band(opcode, 0xFFF) + v[0]
     elseif instruction == 0xC000 then
+        local rand = math.random(0, 255)
+        v[x] = bit.band(rand, bit.band(opcode, 0xFF))
     elseif instruction == 0xD000 then
+        local width = 8
+        local height = bit.band(opcode, 0xF)
+
+        v[0xF] = 0
+
+        for row = 1, height do
+            local sprite = memory[i + row]
+
+            for col = 1, width do
+                if bit.band(sprite, 0x80) > 0 then
+                    if SetPixel(v[x] + col, v[y] + row) then
+                        v[0xF] = 1
+                    end
+                end
+
+                sprite = bit.lshift(sprite, 1)
+            end
+        end
     elseif instruction == 0xE000 then
+        if bit.band(opcode, 0xFF) == 0x9E then
+            
+        elseif bit.band(opcode, 0xFF) == 0xA1 then
+
+        end
     elseif instruction == 0xF000 then
         if bit.band(opcode, 0xFF) == 0x07 then
         elseif bit.band(opcode, 0xFF) == 0x0A then
