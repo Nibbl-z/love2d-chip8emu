@@ -30,7 +30,12 @@ local keysPressed = {}
 local onNextKeyPress = nil
 
 local memory = {} -- 4kb memory
-local v = {} -- registers
+local v = {
+    [0x0] = 0, [0x1] = 0, [0x2] = 0, [0x3] = 0,
+    [0x4] = 0, [0x5] = 0, [0x6] = 0, [0x7] = 0,
+    [0x8] = 0, [0x9] = 0, [0xA] = 0, [0xB] = 0,
+    [0xC] = 0, [0xD] = 0, [0xE] = 0, [0xF] = 0
+} -- registers
 local i = 0 -- stores memory address
 
 local delayTimer = 0
@@ -128,13 +133,14 @@ function LoadSpritesIntoMemory()
 end
 
 function LoadProgramIntoMemory(program)
+    print(program)
     for loc = 1, string.len(program) do
         memory[0x200 + loc] = string.byte(program, loc, loc)
     end
 end
 
 function LoadRom(romName)
-    local contents = love.filesystem.read("string", "roms/"..romName)
+    local contents = love.filesystem.read("string", "roms/TETRIS.ch8", 99999)
     
     LoadProgramIntoMemory(contents)
 end
@@ -143,18 +149,20 @@ function ExecuteInstruction(opcode)
     pc = pc + 2
     
     local x = bit.rshift(bit.band(opcode, 0x0F00), 8)
-    local y = bit.lshift(bit.band(opcode, 0x00F0), 4)
+    local y = bit.rshift(bit.band(opcode, 0x00F0), 4)
 
     -- there is no swich statement in lua please forgive me
-
+    
     local instruction = bit.band(opcode, 0xF000)
+    
+    print("Instruction:"..tostring(instruction))
+    print("PC: "..tostring(pc))
 
-    if instruction == 0x000 then
+    if instruction == 0x0000 then
         if opcode == 0x00E0 then
             Clear()
         elseif opcode == 0x00EE then
-            pc = stack[#stack]
-            pc = table.remove(stack, #stack)
+            pc = table.remove(stack) + 2
         end
     elseif instruction == 0x1000 then
         pc = bit.band(opcode, 0xFFF)
@@ -225,7 +233,7 @@ function ExecuteInstruction(opcode)
     elseif instruction == 0xA000 then
         i = bit.band(opcode, 0xFFF)
     elseif instruction == 0xB000 then
-        pc = bit.band(opcode, 0xFFF) + v[0]
+        pc = bit.band(opcode, 0xFFF) + v[0x0]
     elseif instruction == 0xC000 then
         local rand = math.random(0, 255)
         v[x] = bit.band(rand, bit.band(opcode, 0xFF))
@@ -298,15 +306,15 @@ function Cycle()
     for i = 1, speed do
         if not paused then
             local opcode = bit.bor(bit.lshift(memory[pc], 8), memory[pc + 1])
-            
+            ExecuteInstruction(opcode)
         end
     end
-
+    
     if not paused then
         if delayTimer > 0 then
             delayTimer = delayTimer - 1
         end
-
+        
         if soundTimer > 0 then
             soundTimer = soundTimer - 1
         end
@@ -319,18 +327,23 @@ function love.load()
     fpsInterval = 1000 / fps
     after = love.timer.getTime()
     startTime = after
+    
+    for index, value in pairs(keymap) do
+        keysPressed[index] = false
+    end
 
+    for i = 1, 4000 do
+        memory[i] = 0
+    end
+    
     LoadSpritesIntoMemory()
     LoadRom("BLITZ")
 end
 
 function love.update()
-    now = love.timer.getTime()
-    elapsed = now - after
+    
+    Cycle()
 
-    if elapsed > fpsInterval then
-        Cycle()
-    end
 end
 
 function love.draw()
