@@ -134,8 +134,8 @@ function LoadProgramIntoMemory(program)
 end
 
 function LoadRom(romName)
-    local contents = love.filesystem.read("string", romName, math.huge)
-
+    local contents = love.filesystem.read("string", "roms/"..romName)
+    
     LoadProgramIntoMemory(contents)
 end
 
@@ -244,26 +244,50 @@ function ExecuteInstruction(opcode)
                         v[0xF] = 1
                     end
                 end
-
+                
                 sprite = bit.lshift(sprite, 1)
             end
         end
     elseif instruction == 0xE000 then
         if bit.band(opcode, 0xFF) == 0x9E then
-            
+            if IsKeyPressed(v[x]) then
+                pc = pc + 2
+            end
         elseif bit.band(opcode, 0xFF) == 0xA1 then
-
+            if not IsKeyPressed(v[x]) then
+                pc = pc + 2
+            end
         end
     elseif instruction == 0xF000 then
         if bit.band(opcode, 0xFF) == 0x07 then
+            v[x] = delayTimer
         elseif bit.band(opcode, 0xFF) == 0x0A then
+            paused = true
+
+            onNextKeyPress = function(key)
+                v[x] = key
+                paused = false
+            end
         elseif bit.band(opcode, 0xFF) == 0x15 then
+            delayTimer = v[x]
         elseif bit.band(opcode, 0xFF) == 0x18 then
+            soundTimer = v[x]
         elseif bit.band(opcode, 0xFF) == 0x1E then
+            i = i + v[x]
         elseif bit.band(opcode, 0xFF) == 0x29 then
+            i = v[x] * 5
         elseif bit.band(opcode, 0xFF) == 0x33 then
+            memory[i] = tonumber(v[x] / 100)
+            memory[i + 1] = tonumber((v[x] % 100) / 10)
+            memory[i + 2] = tonumber(v[x] % 10)
         elseif bit.band(opcode, 0xFF) == 0x55 then
+            for registerIndex = 1, x do
+                memory[i + registerIndex] = v[registerIndex]
+            end
         elseif bit.band(opcode, 0xFF) == 0x65 then
+            for registerIndex = 1, x do
+                v[registerIndex] = memory[i + registerIndex]
+            end
         end
     else
         error("Unknown opcode: "..tostring(opcode))
@@ -295,6 +319,9 @@ function love.load()
     fpsInterval = 1000 / fps
     after = love.timer.getTime()
     startTime = after
+
+    LoadSpritesIntoMemory()
+    LoadRom("BLITZ")
 end
 
 function love.update()
@@ -302,7 +329,7 @@ function love.update()
     elapsed = now - after
 
     if elapsed > fpsInterval then
-        
+        Cycle()
     end
 end
 
