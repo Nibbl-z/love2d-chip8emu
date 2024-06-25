@@ -53,7 +53,7 @@ function cpu:LoadRom()
     while i <= length do
         local a, b = program:byte(i, i + 1)
         i = i + 2
-
+        
         table.insert(instructions, a * 16 * 16 + (b or 0))
     end
 
@@ -70,6 +70,56 @@ function cpu:LoadRom()
     end
 
     self:LoadSpritesIntoMemory()
+end
+
+function cpu:Cycle()
+    local byte1 = self.memory[self.pc] or 0
+    local byte2 = self.memory[self.pc + 1] or 0
+
+    local word = byte1 * 16 * 16 + byte2
+
+    local nnn = bit.band(word, 0x0fff)
+    local kk = byte2
+    local o = bit.rshift(bit.band(byte1, 0xf0), 4)
+    local x = bit.band(byte1, 0x0f)
+    local y = bit.rshift(bit.band(byte2, 0xf0), 4)
+    local n = bit.band(byte2, 0x0f)
+
+    if o == 0x0 then
+        if kk == 0x00E0 then -- clear display
+            self.renderer:InitializeDisplay()
+        elseif kk == 0x00EE then -- return from subroutine
+            self.pc = table.remove(self.stack) + 2
+        end
+
+        self.pc = self.pc + 2
+    elseif o == 0x1 then -- jump to nnn
+        self.pc = nnn
+    elseif o == 0x2 then -- call subroutine at nnn
+        table.insert(self.stack, self.pc)
+        self.pc = nnn
+    elseif o == 0x3 then -- skip instruction if V[x] equals kk
+        if self.v[x] == kk then
+            self.pc = self.pc + 4
+        else
+            self.pc = self.pc + 2
+        end
+    elseif o == 0x4 then -- skip instruction if V[x] does not equal kk
+        if self.v[x] ~= kk then
+            self.pc = self.pc + 4
+        else
+            self.pc = self.pc + 2
+        end
+    elseif o == 0x5 then -- skip instruction if V[x] does not equal V[y]
+        if self.v[x] ~= self.v[y] then
+            self.pc = self.pc + 4
+        else
+            self.pc = self.pc + 2
+        end
+    elseif o == 0x6 then -- set V[x] to kk
+        self.v[x] = kk
+        self.pc = self.pc + 2
+    end
 end
 
 return cpu
