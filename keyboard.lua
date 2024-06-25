@@ -42,3 +42,5 @@ function love.keyreleased(_, scancode)
     local key = keyboard.keymap[scancode]
     keyboard.keysPressed[key] = false
 end
+
+return keyboard
