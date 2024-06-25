@@ -4,7 +4,12 @@ cpu.renderer = require("renderer")
 cpu.keyboard = require("keyboard")
 
 cpu.memory = {}
-cpu.v = {}
+cpu.v = {
+    [0x0] = 0, [0x1] = 0, [0x2] = 0, [0x3] = 0,
+    [0x4] = 0, [0x5] = 0, [0x6] = 0, [0x7] = 0,
+    [0x8] = 0, [0x9] = 0, [0xA] = 0, [0xB] = 0,
+    [0xC] = 0, [0xD] = 0, [0xE] = 0, [0xF] = 0
+}
 cpu.i = 0
 
 cpu.delayTimer = 0
@@ -43,7 +48,7 @@ function cpu:LoadSpritesIntoMemory()
 end
 
 function cpu:LoadRom()
-    local program = love.filesystem.read("/roms/TETRIS.ch8")
+    local program = love.filesystem.read("/roms/BLITZ")
 
     local instructions = {}
 
@@ -84,7 +89,9 @@ function cpu:Cycle()
     local x = bit.band(byte1, 0x0f)
     local y = bit.rshift(bit.band(byte2, 0xf0), 4)
     local n = bit.band(byte2, 0x0f)
-
+    
+    print(word)
+    
     if o == 0x0 then
         if kk == 0x00E0 then -- clear display
             self.renderer:InitializeDisplay()
@@ -120,8 +127,8 @@ function cpu:Cycle()
         self.v[x] = kk
         self.pc = self.pc + 2
     elseif o == 0x7 then -- add kk to V[x]
-        local val = cpu.v[x] + kk
-
+        local val = cpu.v[x + 1] + kk
+        
         if val > 0xFF then
             v = v - 0x100
         end
@@ -198,7 +205,7 @@ function cpu:Cycle()
 
             for col = 0, width - 1 do
                 if bit.band(sprite, 0x80) > 0 then
-                    if self.renderer:SetPixel(self.v[x] + col, self.v[y] + row) then
+                    if self.renderer:SetPixel(self.v[x + 1] + col, self.v[y + 1] + row) then
                         self.v[0xF] = 1
                     end
                 end
@@ -206,6 +213,8 @@ function cpu:Cycle()
                 sprite = bit.lshift(sprite, 1)
             end
         end
+
+        self.pc = self.pc + 2
     elseif o == 0xE then
         if kk == 0x9E then
             self.pc = self.pc + 2

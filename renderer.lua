@@ -1,7 +1,7 @@
 local renderer = {}
 
 renderer.cols = 64
-renderer.rows = 64
+renderer.rows = 32
 renderer.scale = 10
 
 renderer.display = {}
